@@ -1,0 +1,282 @@
+const Category = require("../models/category.model");
+const Product = require("../models/product.model");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/AppError");
+const { deleteFile } = require("../middleware/upload.middleware");
+
+exports.getAllCategories = catchAsync(async (req, res, next) => {
+  const { tree, status, parent } = req.query;
+
+  if (tree === "true") {
+    const categories = await Category.getCategoryTree();
+    return res.status(200).json({
+      status: "success",
+      results: categories.length,
+      data: {
+        categories,
+      },
+    });
+  }
+
+  const filter = {};
+  if (status) filter.status = status;
+  if (parent === "null") {
+    filter.parent = null;
+  } else if (parent) {
+    filter.parent = parent;
+  }
+
+  const categories = await Category.find(filter)
+    .populate("subcategories", "name slug status")
+    .populate("productCount")
+    .sort({ sortOrder: 1, name: 1 });
+
+  res.status(200).json({
+    status: "success",
+    results: categories.length,
+    data: {
+      categories,
+    },
+  });
+});
+
+exports.getCategory = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+  const query = isObjectId ? { _id: id } : { slug: id };
+
+  const category = await Category.findOne(query)
+    .populate("subcategories", "name slug image status")
+    .populate("productCount")
+    .populate("parent", "name slug");
+
+  if (!category) {
+    return next(new AppError("Category not found", 404));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      category,
+    },
+  });
+});
+
+// Create new category (Admin only)
+exports.createCategory = catchAsync(async (req, res, next) => {
+  const { name, description, parent, status, sortOrder } = req.body;
+
+  // Check if parent category exists
+  if (parent) {
+    const parentCategory = await Category.findById(parent);
+    if (!parentCategory) {
+      return next(new AppError("Parent category not found", 400));
+    }
+  }
+
+  const categoryData = {
+    name,
+    description,
+    parent: parent || null,
+    status: status || "active",
+    sortOrder: sortOrder || 0,
+  };
+
+  if (req.file) {
+    categoryData.image = req.file.cloudinaryUrl;
+    categoryData.imagePublicId = req.file.cloudinaryPublicId;
+  }
+
+  const category = await Category.create(categoryData);
+
+  res.status(201).json({
+    status: "success",
+    data: {
+      category,
+    },
+  });
+});
+
+// Update category (Admin only)
+exports.updateCategory = catchAsync(async (req, res, next) => {
+  const { name, description, parent, status, sortOrder } = req.body;
+
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    return next(new AppError("Category not found", 404));
+  }
+
+  // Prevent setting self as parent
+  if (parent && parent === req.params.id) {
+    return next(new AppError("Category cannot be its own parent", 400));
+  }
+
+  // Check if new parent exists
+  if (parent) {
+    const parentCategory = await Category.findById(parent);
+    if (!parentCategory) {
+      return next(new AppError("Parent category not found", 400));
+    }
+  }
+
+  // Update fields
+  if (name !== undefined) category.name = name;
+  if (description !== undefined) category.description = description;
+  if (parent !== undefined) category.parent = parent || null;
+  if (status !== undefined) category.status = status;
+  if (sortOrder !== undefined) category.sortOrder = sortOrder;
+
+  if (req.file) {
+    if (category.imagePublicId) {
+      await deleteFile(category.imagePublicId);
+    }
+    category.image = req.file.cloudinaryUrl;
+    category.imagePublicId = req.file.cloudinaryPublicId;
+  }
+
+  await category.save();
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      category,
+    },
+  });
+});
+
+// Delete category (Admin only)
+exports.deleteCategory = catchAsync(async (req, res, next) => {
+  const category = await Category.findById(req.params.id);
+
+  if (!category) {
+    return next(new AppError("Category not found", 404));
+  }
+
+  // Check if category has subcategories
+  const subcategoriesCount = await Category.countDocuments({
+    parent: req.params.id,
+  });
+  if (subcategoriesCount > 0) {
+    return next(
+      new AppError(
+        "Cannot delete category with subcategories. Delete subcategories first.",
+        400
+      )
+    );
+  }
+
+  // Check if category has products
+  const productsCount = await Product.countDocuments({
+    category: req.params.id,
+    deletedAt: null,
+  });
+  if (productsCount > 0) {
+    return next(
+      new AppError(
+        `Cannot delete category with ${productsCount} active products. Move or delete products first.`,
+        400
+      )
+    );
+  }
+
+  if (category.imagePublicId) {
+    await deleteFile(category.imagePublicId);
+  }
+
+  await Category.findByIdAndDelete(req.params.id);
+
+  res.status(200).json({
+    status: "success",
+    message: "Category deleted successfully",
+  });
+});
+
+// Get category products
+exports.getCategoryProducts = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { page = 1, limit = 20, sort = "-createdAt", search, minPrice, maxPrice, colors, materials, minRating } = req.query;
+
+  // Check if it's an ObjectId or slug
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+  const query = isObjectId ? { _id: id } : { slug: id };
+
+  const category = await Category.findOne(query);
+
+  if (!category) {
+    return next(new AppError("Category not found", 404));
+  }
+
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+
+  // Build filter for products
+  const filter = {
+    category: category._id,
+    deletedAt: null,
+    status: { $in: ["active", "out_of_stock"] },
+  };
+
+  // Handle search
+  if (search) {
+    filter.$text = { $search: search };
+  }
+
+  // Handle price range filter
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = parseFloat(minPrice);
+    if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+  }
+
+  // Handle colors filter (case-insensitive)
+  if (colors) {
+    const colorList = colors.split(",").filter(Boolean);
+    if (colorList.length > 0) {
+      filter.colors = { $in: colorList.map((c) => new RegExp(`^${c}$`, "i")) };
+    }
+  }
+
+  // Handle materials filter (case-insensitive)
+  if (materials) {
+    const materialList = materials.split(",").filter(Boolean);
+    if (materialList.length > 0) {
+      filter.materials = { $in: materialList.map((m) => new RegExp(`^${m}$`, "i")) };
+    }
+  }
+
+  // Handle rating filter
+  if (minRating) {
+    filter["rating.average"] = { $gte: parseFloat(minRating) };
+  }
+
+  const [products, total] = await Promise.all([
+    Product.find(filter)
+      .populate("category", "name slug")
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum),
+    Product.countDocuments(filter),
+  ]);
+
+  res.status(200).json({
+    status: "success",
+    results: products.length,
+    data: {
+      category: {
+        id: category._id,
+        name: category.name,
+        slug: category.slug,
+      },
+      products,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    },
+  });
+});

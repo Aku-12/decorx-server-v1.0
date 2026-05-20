@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const crypto = require("crypto");
-const bcrypt = require("bcrypt");
+
 
 const userSchema = new mongoose.Schema(
   {
@@ -13,15 +13,7 @@ const userSchema = new mongoose.Schema(
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
     },
 
-    password: {
-      type: String,
-      minlength: [8, "Password must be at least 8 characters"],
-      select: false,
-    },
 
-    passwordChangedAt: Date,
-    passwordResetToken: String,
-    passwordResetExpires: Date,
 
     firstName: {
       type: String,
@@ -101,25 +93,7 @@ userSchema.virtual("fullName").get(function () {
   return this.firstName || null;
 });
 
-userSchema.pre("save", async function () {
-  if (!this.isModified("password") || !this.password) return;
-  this.password = await bcrypt.hash(this.password, 12);
-  if (!this.isNew) {
-    this.passwordChangedAt = Date.now() - 1000;
-  }
-});
 
-userSchema.methods.correctPassword = function (candidatePassword, hashedPassword) {
-  return bcrypt.compare(candidatePassword, hashedPassword);
-};
-
-userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  if (this.passwordChangedAt) {
-    const changedAt = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-    return JWTTimestamp < changedAt;
-  }
-  return false;
-};
 
 userSchema.methods.createMagicLinkToken = function () {
   const rawToken = crypto.randomBytes(32).toString("hex");
@@ -128,12 +102,7 @@ userSchema.methods.createMagicLinkToken = function () {
   return rawToken;
 };
 
-userSchema.methods.createPasswordResetToken = function () {
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  this.passwordResetToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-  return rawToken;
-};
+
 
 userSchema.methods.updateLoginActivity = function () {
   this.lastLogin = Date.now();

@@ -11,8 +11,18 @@ const createTransporter = () =>
     },
   });
 
-const FROM = `"DecorX" <${process.env.EMAIL_FROM}>`;
+const FROM = process.env.EMAIL_FROM || '"DecorX Studio" <support@aurainteriors.live>';
 const FRONTEND = process.env.FRONTEND_URL || "http://localhost:5173";
+
+const BRAND = {
+  orange: "#E8622A",
+  orangeLight: "#FDF0EA",
+  dark: "#1A1714",
+  muted: "#64748B",
+  border: "#E5E7EB",
+  bg: "#F3F4F6",
+  white: "#FFFFFF",
+};
 
 const baseTemplate = (content) => `
 <!DOCTYPE html>
@@ -20,103 +30,202 @@ const baseTemplate = (content) => `
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body   { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1A1714; margin: 0; padding: 0; background: #F8F9FA; }
-    .wrap  { max-width: 560px; margin: 40px auto; padding: 0 16px; }
-    .container { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-    .head  { padding: 32px 32px 0 32px; text-align: center; }
-    .head h1 { margin: 0; font-size: 24px; font-weight: 700; color: #1A1714; letter-spacing: -0.5px; }
-    .body  { padding: 32px; }
-    .btn   { display: inline-block; padding: 14px 28px; background: #F27318; color: #FFFFFF !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; margin: 24px 0; }
-    .note  { margin-top: 24px; color: #64748B; font-size: 13px; border-top: 1px solid #F1F5F9; padding-top: 24px; }
-    .foot  { text-align: center; padding: 24px 0; color: #94A33B; font-size: 12px; }
-    p { margin: 0 0 16px 0; }
-  </style>
+  <title>DecorX Studio</title>
 </head>
-<body>
-  <div class="wrap">
-    <div class="container">
-      <div class="head">
-        <h1>DecorX</h1>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: ${BRAND.dark}; margin: 0; padding: 0; background-color: ${BRAND.bg};">
+  <div style="max-width: 500px; margin: 40px auto; padding: 0 16px;">
+
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span style="font-size: 16px; font-weight: 700; color: ${BRAND.dark}; letter-spacing: 0.25em; text-transform: uppercase;">DECORX</span>
+    </div>
+
+    <div style="background-color: ${BRAND.white}; border: 1px solid ${BRAND.border}; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(26, 23, 20, 0.03);">
+      <div style="padding: 40px 32px;">
+        ${content}
       </div>
-      <div class="body">${content}</div>
     </div>
-    <div class="foot">
-      <p>DecorX &mdash; Redefining luxury furniture</p>
-      <p>Chwakpa Tole, Hattiban, Lalitpur, 44600</p>
+
+    <div style="text-align: center; margin-top: 32px; padding-bottom: 40px;">
+      <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 20px auto;">
+        <tr>
+          <td style="padding: 0 10px;">
+            <a href="https://instagram.com/decorx" target="_blank" title="Instagram" style="text-decoration: none;">
+              <img src="https://img.icons8.com/ios-filled/50/64748B/instagram-new.png" alt="Instagram" width="18" height="18" style="display: block; opacity: 0.8;" />
+            </a>
+          </td>
+          <td style="padding: 0 10px;">
+            <a href="https://facebook.com/decorx" target="_blank" title="Facebook" style="text-decoration: none;">
+              <img src="https://img.icons8.com/ios-filled/50/64748B/facebook-new.png" alt="Facebook" width="18" height="18" style="display: block; opacity: 0.8;" />
+            </a>
+          </td>
+          <td style="padding: 0 10px;">
+            <a href="https://twitter.com/decorx" target="_blank" title="Twitter / X" style="text-decoration: none;">
+              <img src="https://img.icons8.com/ios-filled/50/64748B/x.png" alt="Twitter" width="18" height="18" style="display: block; opacity: 0.8;" />
+            </a>
+          </td>
+          <td style="padding: 0 10px;">
+            <a href="https://discord.gg/decorx" target="_blank" title="Discord" style="text-decoration: none;">
+              <img src="https://img.icons8.com/ios-filled/50/64748B/discord-logo.png" alt="Discord" width="18" height="18" style="display: block; opacity: 0.8;" />
+            </a>
+          </td>
+          <td style="padding: 0 10px;">
+            <a href="https://youtube.com/decorx" target="_blank" title="YouTube" style="text-decoration: none;">
+              <img src="https://img.icons8.com/ios-filled/50/64748B/youtube-play.png" alt="YouTube" width="18" height="18" style="display: block; opacity: 0.8;" />
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin: 0; font-size: 12px; color: ${BRAND.muted}; line-height: 1.8;">
+        DecorX Studio, Chwakpa Tole, Hattiban,<br />
+        Lalitpur, 44600 Nepal<br />
+        &copy; 2026 DecorX Studio PBC, Inc.
+      </p>
     </div>
+
   </div>
 </body>
 </html>
 `;
 
+const divider = `<div style="height: 1px; background-color: ${BRAND.border}; margin: 28px 0;"></div>`;
+
+const ctaButton = (href, label) =>
+  `<a href="${href}" style="display: inline-block; padding: 13px 28px; background-color: ${BRAND.orange}; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+    ${label}
+  </a>`;
+
+const securityNote = (msg) =>
+  `<table border="0" cellpadding="0" cellspacing="0" style="width: 100%; background-color: ${BRAND.bg}; border-radius: 8px; margin-top: 24px;">
+    <tr>
+      <td style="padding: 12px 14px; font-size: 13px; color: ${BRAND.muted}; line-height: 1.5; border-left: 3px solid ${BRAND.border}; border-radius: 0 8px 8px 0;">
+        ${msg}
+      </td>
+    </tr>
+  </table>`;
+
 const send = (to, subject, html) =>
   createTransporter().sendMail({ from: FROM, to, subject, html });
 
-exports.sendMagicLinkEmail = (email, magicLink) =>
+exports.sendMagicLinkEmail = (email, magicLink, firstName) =>
   send(
     email,
-    "Your DecorX Sign-In Link",
+    "Your sign-in link for DecorX",
     baseTemplate(`
-      <p>Hello 👋</p>
-      <p>Click the button below to sign in. This link expires in <strong>15 minutes</strong>.</p>
-      <div style="text-align:center;">
-        <a href="${magicLink}" class="btn">Sign In to DecorX</a>
-      </div>
-      <p class="note">
-        Or copy this link into your browser:<br />
-        <span style="word-break:break-all;color:#F27318;">${magicLink}</span>
-      </p>
-      <p class="note">If you didn't request this, you can safely ignore this email.</p>
-    `),
-  );
+      <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 24px auto;">
+        <tr>
+          <td style="background-color: ${BRAND.orangeLight}; padding: 12px; border-radius: 10px; text-align: center; vertical-align: middle;">
+            <img src="https://img.icons8.com/ios-filled/50/E8622A/lock.png" alt="Lock" width="20" height="20" style="display: block; border: 0;" />
+          </td>
+        </tr>
+      </table>
 
-exports.sendPasswordResetEmail = (email, firstName, resetURL) =>
-  send(
-    email,
-    "Reset Your Password – DecorX",
-    baseTemplate(`
-      <p>Hi ${firstName || "there"},</p>
-      <p>You requested a password reset. Click below — this link expires in <strong>10 minutes</strong>.</p>
-      <div style="text-align:center;">
-        <a href="${resetURL}" class="btn">Reset Password</a>
-      </div>
-      <p class="note">If you didn't request this, you can safely ignore this email. Your password will not change.</p>
+      <h1 style="text-align: center; margin: 0 0 12px 0; font-size: 20px; font-weight: 700; color: ${BRAND.dark}; letter-spacing: -0.4px; line-height: 1.2;">Sign in to DecorX</h1>
+      <p style="text-align: center; margin: 0 0 24px 0; font-size: 15px; color: ${BRAND.dark}; line-height: 1.6;">
+        Hi ${email} — click the button below to sign in. This link is secure and expires in <strong style="font-weight: 700;">15 minutes</strong>.
+      </p>
+
+      <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin-bottom: 24px;">
+        <tr>
+          <td align="center" style="background-color: ${BRAND.orange}; border-radius: 8px; padding: 14px 20px; text-align: center;">
+            <a href="${magicLink}" style="display: block; width: 100%; color: #FFFFFF; font-size: 16px; font-weight: 600; text-decoration: none;">
+              Sign in to my account
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; margin: 24px 0;">
+        <tr>
+          <td style="border-bottom: 1px solid ${BRAND.border}; vertical-align: middle;"></td>
+          <td style="padding: 0 12px; text-align: center; font-size: 13px; color: ${BRAND.muted}; white-space: nowrap; vertical-align: middle;">
+            or copy this link
+          </td>
+          <td style="border-bottom: 1px solid ${BRAND.border}; vertical-align: middle;"></td>
+        </tr>
+      </table>
+
+      <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #F9FAFB; border: 1px solid ${BRAND.border}; border-radius: 8px; margin-bottom: 24px;">
+  <tr>
+    <td style="padding: 14px 16px; font-size: 12px; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; color: ${BRAND.muted}; word-break: break-all; line-height: 1.5;">
+      <a href="${magicLink}" style="text-decoration: none;">${magicLink}</a>
+    </td>
+  </tr>
+</table>
+
+      <table border="0" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #F9FAFB; border-left: 3px solid #D1D5DB; border-radius: 8px;">
+        <tr>
+          <td style="padding: 16px; vertical-align: middle;">
+            <table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
+              <tr>
+                <td style="width: 18px; vertical-align: top; padding-right: 12px;">
+                  <img src="https://img.icons8.com/ios/50/64748B/shield.png" alt="Shield" width="18" height="18" style="display: block; opacity: 0.7; border: 0;" />
+                </td>
+                <td style="font-size: 13.5px; color: ${BRAND.muted}; line-height: 1.5; vertical-align: middle;">
+                  If you didn't request this, you can safely ignore it. Your account remains secure.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     `),
   );
 
 exports.sendWelcomeEmail = (email, firstName) =>
   send(
     email,
-    "Welcome to DecorX!",
+    "Welcome to DecorX",
     baseTemplate(`
-      <p>Hi ${firstName || "there"} 👋</p>
-      <p>Welcome to DecorX! Your account is all set. Explore our collection and visualize furniture in your space with our AR technology.</p>
-      <div style="text-align:center;">
-        <a href="${FRONTEND}/shop" class="btn">Browse Our Collection</a>
+      <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: ${BRAND.dark}; letter-spacing: -0.3px;">Welcome${firstName ? `, ${firstName}` : ""}!</h1>
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: ${BRAND.muted}; line-height: 1.6;">
+        Your account is ready. Explore our curated collections of premium luxury furniture and use our AR visualizer to see pieces inside your space before you buy.
+      </p>
+
+      <div style="text-align: center; margin: 32px 0;">
+        ${ctaButton(`${FRONTEND}/shop`, "Browse the collection")}
       </div>
+
+      ${securityNote("Questions? Just reply to this email — we're happy to help.")}
     `),
   );
 
 exports.sendNewsletterWelcomeEmail = (email) =>
   send(
     email,
-    "Welcome to the DecorX Newsletter! 🎨",
+    "You're subscribed to DecorX",
     baseTemplate(`
-      <p>Hello 👋</p>
-      <p>Thank you for subscribing! Here's what to expect:</p>
-      <ul>
-        <li>🎨 Latest interior design trends and inspiration</li>
-        <li>🛋️ New product launches and exclusive collections</li>
-        <li>📱 AR furniture viewing tips and tricks</li>
-        <li>🎁 Special offers and early access to sales</li>
-      </ul>
-      <div style="text-align:center;">
-        <a href="${FRONTEND}/shop" class="btn">Browse Our Collection</a>
+      <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600; color: ${BRAND.dark}; letter-spacing: -0.3px;">You're on the list</h1>
+      <p style="margin: 0 0 24px 0; font-size: 15px; color: ${BRAND.muted}; line-height: 1.6;">
+        Thanks for subscribing to the DecorX newsletter. Here's what to expect:
+      </p>
+
+      <table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
+        ${[
+        ["Interior trends", "Latest design inspirations and styles"],
+        ["Product launches", "Be first to shop exclusive new collections"],
+        ["AR spotlights", "Expert tips to visualize furniture in your home"],
+        ["Member offers", "Early sale access and subscriber-only promotions"],
+      ]
+        .map(
+          ([title, desc]) => `
+          <tr>
+            <td style="padding: 10px 0; border-bottom: 1px solid ${BRAND.border}; vertical-align: top;">
+              <p style="margin: 0; font-size: 14px; font-weight: 600; color: ${BRAND.dark};">${title}</p>
+              <p style="margin: 2px 0 0 0; font-size: 13px; color: ${BRAND.muted};">${desc}</p>
+            </td>
+          </tr>`,
+        )
+        .join("")}
+      </table>
+
+      <div style="text-align: center; margin: 32px 0;">
+        ${ctaButton(`${FRONTEND}/shop`, "Browse collections")}
       </div>
-      <p class="note">
+
+      <p style="margin: 0; font-size: 12px; color: ${BRAND.muted}; text-align: center;">
         Didn't subscribe?
-        <a href="${FRONTEND}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color:#F27318;">Unsubscribe here</a>.
+        <a href="${FRONTEND}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${BRAND.orange}; text-decoration: underline;">Unsubscribe here</a>.
       </p>
     `),
   );
@@ -136,9 +245,9 @@ exports.sendNewsletterBroadcast = async (subscribers, subject, htmlContent) => {
           subject,
           html: baseTemplate(`
             ${htmlContent}
-            <p class="note">
-              You received this because you subscribed to DecorX newsletter.
-              <a href="${FRONTEND}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color:#F27318;">Unsubscribe</a>
+            <p style="margin-top: 32px; font-size: 12px; color: ${BRAND.muted}; text-align: center;">
+              You received this because you subscribed to the DecorX newsletter.
+              <a href="${FRONTEND}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color: ${BRAND.orange}; text-decoration: underline;">Unsubscribe</a>
             </p>
           `),
         }),

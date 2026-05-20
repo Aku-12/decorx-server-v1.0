@@ -138,25 +138,4 @@ exports.deleteUser = catchAsync(async (req, res, next) => {
     });
 });
 
-// ADMIN: Reset user password
-exports.adminResetPassword = catchAsync(async (req, res, next) => {
-    const { password } = req.body;
 
-    if (!password || password.length < 8) {
-        return next(new AppError("Please provide a password with at least 8 characters", 400));
-    }
-
-    const user = await User.findById(req.params.id);
-
-    if (!user || user.deletedAt) {
-        return next(new AppError("User not found", 404));
-    }
-
-    user.password = password;
-    await user.save();
-
-    res.status(200).json({
-        status: "success",
-        message: "User password has been reset successfully",
-    });
-});

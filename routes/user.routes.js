@@ -9,7 +9,6 @@ router.use(protect, restrictTo("admin"));
 router.get("/", userController.getAllUsers);
 router.get("/:id", userController.getUser);
 router.patch("/:id/status", userController.updateUserStatus);
-router.patch("/:id/reset-password", userController.adminResetPassword);
 router.delete("/:id", userController.deleteUser);
 
 module.exports = router;

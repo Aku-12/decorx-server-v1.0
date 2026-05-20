@@ -23,9 +23,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     return next(new AppError("The user belonging to this token no longer exists.", 401));
   }
 
-  if (user.changedPasswordAfter(decoded.iat)) {
-    return next(new AppError("User recently changed password. Please log in again.", 401));
-  }
+
 
   if (!user.isActive || user.deletedAt) {
     return next(new AppError("This account has been deactivated.", 401));

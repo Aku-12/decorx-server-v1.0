@@ -39,7 +39,6 @@ passport.use(
             profile.name.familyName || profile.displayName.split(" ")[1] || "",
           avatar: profile.photos[0]?.value || null,
           isEmailVerified: true,
-          password: `google_${profile.id}_${Date.now()}`,
         });
 
         user.updateLoginActivity();

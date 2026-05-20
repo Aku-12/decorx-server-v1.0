@@ -8,7 +8,6 @@ const ADMIN_DATA = {
   firstName: "Admin",
   lastName: "User",
   email: process.env.ADMIN_EMAIL || "admin@aurainteriors.com",
-  password: process.env.ADMIN_PASSWORD || "Admin@123456",
   role: "admin",
   isEmailVerified: true,
   isActive: true,
@@ -31,9 +30,7 @@ const seedAdmin = async () => {
 
     console.log("Admin user created successfully:");
     console.log(`  Email: ${admin.email}`);
-    console.log(`  Password: ${ADMIN_DATA.password}`);
     console.log(`  Role: ${admin.role}`);
-    console.log("\n⚠️  Please change the password after first login!");
 
     process.exit(0);
   } catch (error) {

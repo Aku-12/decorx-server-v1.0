@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user.model");
 const {
   sendMagicLinkEmail,
-  sendPasswordResetEmail,
 } = require("../services/email.service");
 
 const signToken = (user) =>
@@ -28,13 +27,12 @@ const attachTokenCookie = (res, token) => {
 const sendAuthResponse = (user, statusCode, res) => {
   const token = signToken(user);
   attachTokenCookie(res, token);
-  user.password = undefined;
   res.status(statusCode).json({ status: "success", token, data: { user } });
 };
 
 exports.sendMagicLink = async (req, res) => {
   try {
-    const { email, fullName } = req.body;
+    const { email } = req.body;
     if (!email) {
       return res
         .status(400)
@@ -51,20 +49,8 @@ exports.sendMagicLink = async (req, res) => {
     }
 
     if (!user) {
-      // Create user with fullName if provided
-      let firstName = "";
-      let lastName = "";
-      if (fullName) {
-        const parts = fullName.trim().split(/\s+/);
-        firstName = parts[0];
-        lastName = parts.slice(1).join(" ");
-      }
-      user = new User({ email, firstName, lastName });
-    } else if (fullName && !user.firstName && !user.lastName) {
-      // Extra step: if user exists but has no name (maybe partial setup), update it
-      const parts = fullName.trim().split(/\s+/);
-      user.firstName = parts[0];
-      user.lastName = parts.slice(1).join(" ");
+      // Auto-provision account on first login
+      user = new User({ email });
     }
 
     const rawToken = user.createMagicLinkToken();
@@ -121,171 +107,10 @@ exports.verifyMagicLink = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "Email and password are required" });
-    }
-
-    const user = await User.findOne({ email, deletedAt: null }).select(
-      "+password",
-    );
-
-    if (
-      !user ||
-      !user.password ||
-      !(await user.correctPassword(password, user.password))
-    ) {
-      return res
-        .status(401)
-        .json({ status: "fail", message: "Invalid email or password" });
-    }
-
-    if (!user.isEmailVerified) {
-      return res.status(401).json({
-        status: "fail",
-        message:
-          "Please verify your email first. Check your inbox for a sign-in link.",
-      });
-    }
-
-    if (!user.isActive) {
-      return res.status(403).json({
-        status: "fail",
-        message: "Your account has been deactivated. Please contact support.",
-      });
-    }
-
-    user.updateLoginActivity();
-    await user.save({ validateBeforeSave: false });
-
-    sendAuthResponse(user, 200, res);
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
-};
-
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const VAGUE_OK = {
-      status: "success",
-      message: "If that email is registered, a reset link has been sent.",
-    };
-
-    const user = await User.findOne({ email, deletedAt: null });
-
-    if (!user || !user.isEmailVerified) {
-      return res.status(200).json(VAGUE_OK);
-    }
-
-    const rawToken = user.createPasswordResetToken();
-    await user.save({ validateBeforeSave: false });
-
-    res.status(200).json(VAGUE_OK);
-
-    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${rawToken}`;
-    sendPasswordResetEmail(user.email, user.firstName, resetURL).catch((err) =>
-      console.error(
-        `[email] Password reset failed for ${user.email}: ${err.message}`,
-      ),
-    );
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
-};
-
-exports.resetPassword = async (req, res) => {
-  try {
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(req.params.token)
-      .digest("hex");
-
-    const user = await User.findOne({
-      passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        status: "fail",
-        message: "This reset link is invalid or has expired.",
-      });
-    }
-
-    user.password = req.body.password;
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save();
-
-    sendAuthResponse(user, 200, res);
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
-};
-
-exports.updatePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user.id).select("+password");
-
-    if (!user.password) {
-      return res.status(400).json({
-        status: "fail",
-        message: "No password set on this account. Use /set-password first.",
-      });
-    }
-
-    if (!(await user.correctPassword(currentPassword, user.password))) {
-      return res
-        .status(401)
-        .json({ status: "fail", message: "Current password is incorrect" });
-    }
-
-    user.password = newPassword;
-    await user.save();
-
-    sendAuthResponse(user, 200, res);
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
-};
-
-exports.setPassword = async (req, res) => {
-  try {
-    const { password } = req.body;
-    if (!password) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "Password is required" });
-    }
-
-    const user = await User.findById(req.user.id).select("+password");
-
-    if (user.password) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Password already set. Use /update-password to change it.",
-      });
-    }
-
-    user.password = password;
-    await user.save();
-
-    sendAuthResponse(user, 200, res);
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
-  }
-};
-
 exports.googleCallback = (req, res) => {
   const token = signToken(req.user);
   attachTokenCookie(res, token);
-  res.redirect(`${process.env.FRONTEND_URL}/auth/success`);
+  res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
 };
 
 exports.getMe = async (req, res) => {

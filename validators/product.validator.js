@@ -203,7 +203,7 @@ exports.getProductsQuerySchema = Joi.object({
   style: Joi.string(),
   minPrice: Joi.number().min(0),
   maxPrice: Joi.number().min(0),
-  search: Joi.string().trim().max(200),
+  search: Joi.string().trim().max(200).allow(""),
   featured: Joi.string().valid("true", "false"),
   newArrivals: Joi.string().valid("true", "false"),
   inStock: Joi.string().valid("true", "false"),

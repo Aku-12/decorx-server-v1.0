@@ -119,7 +119,7 @@ exports.getOrdersQuerySchema = Joi.object({
     "cancelled"
   ),
   paymentStatus: Joi.string().valid("pending", "paid", "failed", "refunded"),
-  search: Joi.string().trim(),
+  search: Joi.string().trim().allow(""),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
 });
